@@ -1,0 +1,38 @@
+[tool.poetry]
+name = "knowledge-system"
+version = "0.1.0"
+description = "Role-gated chat over HR handbook RAG, sales text-to-SQL, and read-only GitHub MCP"
+authors = ["Yu-Hsuan Ting"]
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.10"
+fastapi = "^0.142.0"
+uvicorn = { version = "^0.54.0", extras = ["standard"] }
+pydantic = "^2.13.5"
+python-dotenv = "^1.0.1"
+sqlalchemy = "^2.0.35"
+psycopg2-binary = "^2.9.9"
+tiktoken = "^0.8.0"
+langgraph = "^1.2.14"
+langchain-core = "^1.6.7"
+langchain-ollama = "^1.1.0"
+langchain-mcp-adapters = "^0.3.0"
+mcp = "^1.30.0"  # pinned below 2.0 -- langchain-mcp-adapters 0.3.0 breaks on mcp 2.x
+streamlit = "^1.39.0"
+requests = "^2.32.3"
+
+[tool.poetry.dev-dependencies]
+pytest = "^8.3.3"
+pytest-asyncio = "^0.24.0"
+httpx = "^0.27.2"
+black = "^24.0.0"
+isort = "^5.13.0"
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

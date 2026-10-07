@@ -1,0 +1,14 @@
+{
+  "hr_rag": [
+    "What's PostHog's remote work culture like?",
+    "How does PostHog expect people to give feedback?"
+  ],
+  "sales_sql": [
+    "What were total sales by country in 2026?",
+    "Which product generated the most revenue?"
+  ],
+  "github": [
+    "What were the most significant changes in the last week?",
+    "Are there any recent commits related to performance or caching?"
+  ]
+}

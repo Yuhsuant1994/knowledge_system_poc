@@ -1,0 +1,75 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-knowledge_system}
+      POSTGRES_USER: ${POSTGRES_USER:-knowledge_system}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-knowledge_system}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    deploy:
+      resources:
+        limits:
+          memory: 3g
+
+  api:
+    build: .
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-knowledge_system}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-knowledge_system}
+      SALES_READONLY_DATABASE_URL: postgresql+psycopg2://sales_readonly:sales_readonly@postgres:5432/${POSTGRES_DB:-knowledge_system}
+      OLLAMA_BASE_URL: http://ollama:11434
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+
+  streamlit:
+    build: .
+    command: streamlit run streamlit_app/app.py --server.address 0.0.0.0 --server.port 8501
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      FASTAPI_URL: http://api:8000
+    ports:
+      - "8501:8501"
+    depends_on:
+      - api
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+
+volumes:
+  postgres_data:
+  ollama_data:
