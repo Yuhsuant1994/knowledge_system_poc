@@ -6,7 +6,7 @@ A single `/chat` fastapi endpoint orchestrating 3 agents:
 2. Sales text2SQL (Postgres)
 3. Github agent (github MCP)
 
-Along with streamlit UI for demo purpose. Everything runs on open models via Ollama, git credential is a temp key with readonly access for demo purpose.
+Along with streamlit UI for demo purpose. Everything runs on open models via Ollama; the GitHub agent needs your own read-only token (see Local Setup below).
 
 ## Data sources
 
@@ -29,8 +29,10 @@ via `GET /access?username=...` and enforced server-side in every `/chat` call.
 | sales | Hsuan SA | ✅ | ✅ | ❌ |
 
 
-
 ## Local Setup
+
+Copy `.env.example` to `.env` and fill in your own `GITHUB_PERSONAL_ACCESS_TOKEN`. (A fine-grained PAT with no repositories
+selected and read-only access is enough);
 
 ```bash
 make up            # docker compose up for all the resources
