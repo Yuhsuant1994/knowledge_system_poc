@@ -5,73 +5,19 @@ from api.agents.domains import DOMAIN_LABELS
 from api.agents.llm import get_llm
 from api.agents.state import ChatState
 
-CLASSIFY_PROMPT = """Classify the question into exactly one category:
-- hr_rag: HR / company handbook questions (culture, communication, process)
-- sales_sql: questions about sales, orders, customers, products, revenue
-- github: questions about the GitHub repository (issues, PRs, commits, code, CI)
-- unsure: the question doesn't clearly fit any category above, or is unclear
+CLASSIFY_PROMPT = """Classify the question into exactly one category. If unsure, pick "unsure".
+
+- hr_rag: HR company handbook info only (culture, policy, onboarding, benefits, offsites)
+- sales_sql: this company's own sales database only (orders, revenue, customers, products, suppliers)
+- github: commits/PRs/code changes in the coroot/coroot repo only
+- unsure: anything else, or if not confident
 
 Allowed categories for this user: {allowed}
 
 Question: {question}
 
-Don't force it into a category you're not confident about -- reply "unsure"
-instead of guessing.
-
 Reply in exactly this format, nothing else:
 <category>: <one short sentence reason>"""
-
-# TODO: future enhancement better maintain like a intent table
-KEYWORDS = {
-    "sales_sql": {
-        "order",
-        "orders",
-        "sale",
-        "sales",
-        "revenue",
-        "customer",
-        "customers",
-        "product",
-        "products",
-        "invoice",
-        "supplier",
-    },
-    "github": {
-        "commit",
-        "commits",
-        "pr",
-        "pull request",
-        "issue",
-        "issues",
-        "repo",
-        "repository",
-        "deploy",
-        "release",
-        "ci",
-        "pipeline",
-        "codebase",
-        "source code",
-        "regression",
-        "click-through",
-        "click through rate",
-        "recommendation system",
-        "recommendation engine",
-        "changes in the code",
-        "code change",
-    },
-    "hr_rag": {
-        "culture",
-        "handbook",
-        "policy",
-        "pto",
-        "leave",
-        "benefit",
-        "remote",
-        "offsite",
-        "onboarding",
-        "feedback",
-    },
-}
 
 UNCERTAIN_MARKERS = (
     "unclear",
@@ -85,37 +31,20 @@ UNCERTAIN_MARKERS = (
 )
 
 
-def _keyword_domain(question: str) -> str | None:
-    """Guess a single domain for a question by keyword matching.
-
-    Args:
-        question: The user's message.
-
-    Returns:
-        The matched domain name if exactly one domain's keywords hit,
-        otherwise None (no match, or an ambiguous match across domains).
-    """
-    lowered = question.lower()
-    hits = {
-        domain for domain, words in KEYWORDS.items() if any(w in lowered for w in words)
-    }
-    return next(iter(hits)) if len(hits) == 1 else None
-
-
 def classify(state: ChatState) -> ChatState:
     """Decide which agent domain should handle the incoming message.
 
-    Short-circuits when the role has zero or one allowed domains, then
-    tries keyword matching, then falls back to an LLM classification
-    prompt. Denies routing to domains outside the caller's allowed set.
+    Short-circuits when the role has zero or one allowed domains, otherwise
+    classifies via the LLM. Denies routing to domains outside the caller's
+    allowed set.
 
     Args:
         state: Current chat state; reads "allowed_domains" and "message".
 
     Returns:
         The state updated with "route" (a domain name or "none"), "reason",
-        and optionally "denied_domain" if a keyword/LLM match was blocked
-        by permissions.
+        and optionally "denied_domain" if the LLM's match was blocked by
+        permissions.
     """
     allowed = state["allowed_domains"]
     # Permission check
@@ -131,21 +60,6 @@ def classify(state: ChatState) -> ChatState:
             **state,
             "route": route,
             "reason": f"only {route} is accessible for this role",
-        }
-
-    keyword_domain = _keyword_domain(state["message"])
-    if keyword_domain:
-        if keyword_domain in allowed:
-            return {
-                **state,
-                "route": keyword_domain,
-                "reason": f"matched a {keyword_domain} keyword",
-            }
-        return {
-            **state,
-            "route": "none",
-            "reason": f"matched a {keyword_domain} keyword",
-            "denied_domain": keyword_domain,
         }
 
     raw = (

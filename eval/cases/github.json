@@ -1,0 +1,44 @@
+[
+  {
+    "id": "github_01",
+    "question": "What changed in the coroot/coroot codebase recently?",
+    "type": "positive",
+    "role": "admin",
+    "expected_route": "github",
+    "rationale": "Generic recent-changes question is the core use case for the github agent's list_commits-over-last-7-days summary.",
+    "grounding": "live-fetched, not fixed -- verified via GET https://api.github.com/repos/coroot/coroot/commits that the repo has commits as recent as 2026-10-06, so a 7-day lookback window will be non-empty at eval time (re-verify freshness if run much later)."
+  },
+  {
+    "id": "github_04",
+    "question": "Can you summarize the most recent pull requests merged into the repo?",
+    "type": "positive",
+    "role": "dev",
+    "expected_route": "github",
+    "rationale": "Merge commits (e.g. 'Merge pull request #...') appear in list_commits output, so this exercises whether the agent surfaces PR-merge activity from raw commit data.",
+    "grounding": "live-fetched, not fixed -- confirmed via live API that the most recent commit itself is a 'Merge pull request #1044' commit, so merge-commit content is present in the real feed."
+  },
+  {
+    "id": "github_neg_01",
+    "question": "What are the recent commits in the repository?",
+    "type": "negative",
+    "role": "user",
+    "expected_route": "none",
+    "rationale": "RBAC denial: role 'user' only has hr_rag per ROLE_DOMAINS in api/auth/rbac.py, so a github question must route to 'none' with a denied_domain explanation, not to github."
+  },
+  {
+    "id": "github_neg_02",
+    "question": "Summarize the latest commits on the main branch.",
+    "type": "negative",
+    "role": "sales",
+    "expected_route": "none",
+    "rationale": "RBAC denial: 'sales' role has hr_rag and sales_sql only (no github) per ROLE_DOMAINS, so this must be denied and route to 'none'."
+  },
+  {
+    "id": "github_neg_04",
+    "question": "What's the weather forecast for San Francisco this week?",
+    "type": "negative",
+    "role": "admin",
+    "expected_route": "none",
+    "rationale": "Completely out-of-scope/unanswerable question with no keyword or semantic match to any domain, so the LLM classifier should return 'unsure' and route to 'none'."
+  }
+]
