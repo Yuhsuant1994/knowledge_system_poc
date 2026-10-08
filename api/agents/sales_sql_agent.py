@@ -122,9 +122,16 @@ def answer(question: str) -> dict:
             "rows": [],
         }
 
-    with engine.connect() as conn:
-        result = conn.execute(text(sql))
-        rows = [dict(row._mapping) for row in result.fetchmany(50)]
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(text(sql))
+            rows = [dict(row._mapping) for row in result.fetchmany(50)]
+    except Exception as exc:
+        return {
+            "answer": f"I generated a query that failed to run ({exc}).",
+            "sql": sql,
+            "rows": [],
+        }
 
     summary = llm.invoke(
         SUMMARY_PROMPT.format(question=question, sql=sql, rows=rows[:10])

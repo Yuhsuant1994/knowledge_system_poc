@@ -1,0 +1,92 @@
+[
+  {
+    "id": "oos_01",
+    "question": "How do I make a peanut butter sandwich?",
+    "type": "negative",
+    "role": "admin",
+    "expected_route": "none",
+    "rationale": "Completely unrelated to any domain, no keyword overlap -- the LLM classifier should return 'unsure' and route to 'none' rather than force a guess.",
+    "grounding": ""
+  },
+  {
+    "id": "oos_02",
+    "question": "What's a good recipe for banana bread?",
+    "type": "negative",
+    "role": "admin",
+    "expected_route": "none",
+    "rationale": "Same as oos_01, a different nonsensical/unrelated question to check this isn't a one-off fluke of the classifier.",
+    "grounding": ""
+  },
+  {
+    "id": "oos_03",
+    "question": "Can you help me with something?",
+    "type": "negative",
+    "role": "admin",
+    "expected_route": "none",
+    "rationale": "Too vague to classify into any domain -- tests that the router declines to guess rather than defaulting to whichever domain happens to be allowed/first.",
+    "grounding": ""
+  },
+  {
+    "id": "oos_04",
+    "question": "What do you think about this?",
+    "type": "negative",
+    "role": "admin",
+    "expected_route": "none",
+    "rationale": "Ambiguous with no referent -- mirrors the existing test_no_match_returns_none unit test for _keyword_domain, re-verified here end-to-end through the full graph.",
+    "grounding": ""
+  },
+  {
+    "id": "oos_05",
+    "question": "I'm not sure what I need, can you give me some general info?",
+    "type": "negative",
+    "role": "admin",
+    "expected_route": "none",
+    "rationale": "Vague request with no domain signal -- admin has access to all three agents, so a wrong guess here would be a pure classification failure, not an RBAC artifact.",
+    "grounding": ""
+  },
+  {
+    "id": "oos_06",
+    "question": "Can you review this contract for liability issues?",
+    "type": "negative",
+    "role": "admin",
+    "expected_route": "none",
+    "rationale": "Legal-department question -- no agent exists for this domain at all, regardless of role. Should route to 'none', not be forced into HR/Sales/GitHub.",
+    "grounding": ""
+  },
+  {
+    "id": "oos_07",
+    "question": "What's our current social media engagement numbers?",
+    "type": "negative",
+    "role": "admin",
+    "expected_route": "none",
+    "rationale": "Marketing-department question -- no agent covers this; checks the system doesn't misroute it to sales_sql just because it sounds vaguely business-metric-ish.",
+    "grounding": ""
+  },
+  {
+    "id": "oos_08",
+    "question": "What's the company's quarterly burn rate and cash runway?",
+    "type": "negative",
+    "role": "admin",
+    "expected_route": "none",
+    "rationale": "Finance-department question -- distinct from sales_sql's order/revenue data; no agent exists for general company financials.",
+    "grounding": ""
+  },
+  {
+    "id": "oos_09",
+    "question": "Can you restart the production Kubernetes cluster for me?",
+    "type": "negative",
+    "role": "admin",
+    "expected_route": "none",
+    "rationale": "Infra/ops request -- superficially adjacent to the github agent (both 'engineering'), but it's a live-operations action with no keyword overlap (no commit/repo/deploy/pipeline/ci) and no agent performs actions, only read-only commit summaries.",
+    "grounding": ""
+  },
+  {
+    "id": "oos_10",
+    "question": "Can legal confirm we're compliant with GDPR data handling requirements?",
+    "type": "negative",
+    "role": "admin",
+    "expected_route": "none",
+    "rationale": "Compliance/legal question -- deliberately avoids the word 'policy' (which would false-positive into hr_rag's keyword bucket) to isolate a genuine no-agent-exists case from a keyword collision.",
+    "grounding": ""
+  }
+]
