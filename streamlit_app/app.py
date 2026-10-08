@@ -26,6 +26,20 @@ username = st.sidebar.selectbox("Login as", USERS)
 
 @st.cache_data(ttl=30)
 def get_access(user: str) -> dict:
+    """Fetch a user's role and allowed domains from the backend API.
+
+    Cached for 30 seconds via ``st.cache_data``.
+
+    Args:
+        user: Username to look up.
+
+    Returns:
+        The decoded JSON response, containing "role" and "allowed_domains".
+
+    Raises:
+        requests.RequestException: If the request fails or returns an
+            error status.
+    """
     resp = requests.get(f"{FASTAPI_URL}/access", params={"username": user}, timeout=10)
     resp.raise_for_status()
     return resp.json()
@@ -75,6 +89,18 @@ for domain in access["allowed_domains"]:
 
 
 def send_feedback(entry: dict, rating: str, reason: str | None = None) -> None:
+    """Submit feedback for a chat answer to the backend API.
+
+    Network/request errors are silently swallowed so feedback submission
+    never disrupts the chat UI.
+
+    Args:
+        entry: The chat history entry being rated; must contain
+            "username", "question", "text", and "route".
+        rating: The feedback rating, e.g. "up" or "down".
+        reason: Optional free-text reason, typically supplied for
+            negative ratings.
+    """
     try:
         requests.post(
             f"{FASTAPI_URL}/feedback",
@@ -93,6 +119,17 @@ def send_feedback(entry: dict, rating: str, reason: str | None = None) -> None:
 
 
 def render_feedback(entry: dict) -> None:
+    """Render thumbs up/down feedback controls for a chat answer entry.
+
+    Shows a recorded-feedback caption if feedback was already given;
+    otherwise shows up/down buttons, and for a down vote, a text input
+    and submit button to capture an optional reason before sending
+    feedback and re-running the app.
+
+    Args:
+        entry: The chat history entry to attach feedback controls to;
+            must contain an "id" key.
+    """
     key = entry["id"]
     done = st.session_state.get(f"fb_done_{key}")
     if done:

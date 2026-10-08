@@ -35,6 +35,14 @@ these results. If the rows are empty, say so plainly."""
 
 
 def _schema_description() -> str:
+    """Build a compact "table(columns)" listing of the configured sales tables.
+
+    Only tables from `settings.sales_tables` that actually exist in the
+    database are included.
+
+    Returns:
+        One "table(col1, col2, ...)" line per existing table, newline-joined.
+    """
     inspector = inspect(engine)
     existing = set(inspector.get_table_names())
     lines = []
@@ -47,6 +55,14 @@ def _schema_description() -> str:
 
 
 def _clean_sql(raw: str) -> str:
+    """Strip markdown code fences and a trailing semicolon from LLM output.
+
+    Args:
+        raw: Raw SQL text as returned by the LLM.
+
+    Returns:
+        The cleaned SQL statement.
+    """
     sql = raw.strip()
     if sql.startswith("```"):
         sql = sql.strip("`")
@@ -56,6 +72,15 @@ def _clean_sql(raw: str) -> str:
 
 
 def _validate(sql: str) -> None:
+    """Ensure a generated query is a single read-only SELECT/WITH statement.
+
+    Args:
+        sql: The SQL statement to validate.
+
+    Raises:
+        ValueError: If the statement doesn't start with SELECT/WITH, or
+            contains a forbidden keyword or a semicolon.
+    """
     if not SAFE_SELECT_RE.match(sql):
         raise ValueError("generated query must start with SELECT or WITH")
     if FORBIDDEN_RE.search(sql):
@@ -63,6 +88,19 @@ def _validate(sql: str) -> None:
 
 
 def answer(question: str) -> dict:
+    """Answer a sales question by generating, validating, and running SQL.
+
+    Generates a SELECT statement from the schema and question via the LLM,
+    validates it's safe, executes it against the read-only sales database
+    (capped at 50 rows), and summarizes the results in natural language.
+
+    Args:
+        question: The user's sales question.
+
+    Returns:
+        A dict with "answer" text, the "sql" that was run (empty string if
+        none), and the resulting "rows".
+    """
     schema = _schema_description()
     if not schema:
         return {

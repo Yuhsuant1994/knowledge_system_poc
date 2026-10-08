@@ -86,6 +86,15 @@ UNCERTAIN_MARKERS = (
 
 
 def _keyword_domain(question: str) -> str | None:
+    """Guess a single domain for a question by keyword matching.
+
+    Args:
+        question: The user's message.
+
+    Returns:
+        The matched domain name if exactly one domain's keywords hit,
+        otherwise None (no match, or an ambiguous match across domains).
+    """
     lowered = question.lower()
     hits = {
         domain for domain, words in KEYWORDS.items() if any(w in lowered for w in words)
@@ -94,6 +103,20 @@ def _keyword_domain(question: str) -> str | None:
 
 
 def classify(state: ChatState) -> ChatState:
+    """Decide which agent domain should handle the incoming message.
+
+    Short-circuits when the role has zero or one allowed domains, then
+    tries keyword matching, then falls back to an LLM classification
+    prompt. Denies routing to domains outside the caller's allowed set.
+
+    Args:
+        state: Current chat state; reads "allowed_domains" and "message".
+
+    Returns:
+        The state updated with "route" (a domain name or "none"), "reason",
+        and optionally "denied_domain" if a keyword/LLM match was blocked
+        by permissions.
+    """
     allowed = state["allowed_domains"]
     # Permission check
     if not allowed:
@@ -152,11 +175,28 @@ def classify(state: ChatState) -> ChatState:
 
 
 def route_hr(state: ChatState) -> ChatState:
+    """Graph node that delegates to the HR RAG agent.
+
+    Args:
+        state: Current chat state; reads "message".
+
+    Returns:
+        The state updated with "answer" and "sources" from the HR agent.
+    """
     result = hr_rag_agent.answer(state["message"])
     return {**state, "answer": result["answer"], "sources": result["sources"]}
 
 
 def route_sales(state: ChatState) -> ChatState:
+    """Graph node that delegates to the sales SQL agent.
+
+    Args:
+        state: Current chat state; reads "message".
+
+    Returns:
+        The state updated with "answer", the generated "sql" (or None), and
+        an empty "sources" list.
+    """
     result = sales_sql_agent.answer(state["message"])
     return {
         **state,
@@ -167,11 +207,30 @@ def route_sales(state: ChatState) -> ChatState:
 
 
 async def route_github(state: ChatState) -> ChatState:
+    """Graph node that delegates to the GitHub agent.
+
+    Args:
+        state: Current chat state; reads "message".
+
+    Returns:
+        The state updated with "answer" and "sources" from the GitHub agent.
+    """
     result = await github_agent.answer(state["message"])
     return {**state, "answer": result["answer"], "sources": result["sources"]}
 
 
 def route_none(state: ChatState) -> ChatState:
+    """Graph node that produces a fallback answer when no domain was chosen.
+
+    Explains either that access was denied to a specific domain, that the
+    role has no accessible agents at all, or that classification failed.
+
+    Args:
+        state: Current chat state; reads "denied_domain" and "allowed_domains".
+
+    Returns:
+        The state updated with an explanatory "answer" and empty "sources".
+    """
     denied = state.get("denied_domain")
     if denied:
         label = DOMAIN_LABELS.get(denied, denied)
@@ -186,10 +245,26 @@ def route_none(state: ChatState) -> ChatState:
 
 
 def _branch(state: ChatState) -> str:
+    """Select the conditional-edge key for the graph based on routing.
+
+    Args:
+        state: Current chat state; reads "route".
+
+    Returns:
+        The route name to branch to.
+    """
     return state["route"]
 
 
 def build_graph():
+    """Construct and compile the LangGraph chat routing graph.
+
+    Wires a "classify" entry node with conditional edges to the "hr_rag",
+    "sales_sql", "github", and "none" nodes, each terminating at END.
+
+    Returns:
+        The compiled LangGraph graph.
+    """
     graph = StateGraph(ChatState)
     graph.add_node("classify", classify)
     graph.add_node("hr_rag", route_hr)
@@ -218,6 +293,11 @@ _graph = None
 
 
 def get_graph():
+    """Get the lazily-built, module-cached chat routing graph.
+
+    Returns:
+        The compiled LangGraph graph, building it on first call.
+    """
     global _graph
     if _graph is None:
         _graph = build_graph()

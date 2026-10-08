@@ -9,6 +9,12 @@ FORMAT = "%(asctime)s %(levelname)s %(name)s %(message)s"
 
 
 def configure_logging() -> None:
+    """Configure root logging to write to stdout and a daily rotating file.
+
+    Creates the log directory if needed and installs a stream handler plus
+    a `TimedRotatingFileHandler` (midnight rotation, 14 backups), replacing
+    any existing handlers.
+    """
     log_dir = Path(settings.log_dir)
     log_dir.mkdir(parents=True, exist_ok=True)
 

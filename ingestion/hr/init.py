@@ -8,6 +8,11 @@ logger = logging.getLogger(__name__)
 
 
 def main() -> None:
+    """Rebuild the HR document index from scratch.
+
+    Clears all existing HR documents, crawls and fetches every doc from
+    the source repo, indexes each one, and logs the total chunk count.
+    """
     clear_all()
     docs = list_docs()
     total = 0

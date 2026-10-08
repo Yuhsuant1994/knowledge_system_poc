@@ -10,6 +10,11 @@ from api.routes import access, chat, feedback
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Configure logging and run startup checks before serving, then dispose engines on shutdown.
+
+    Args:
+        app: The FastAPI application instance (unused, required by the lifespan signature).
+    """
     configure_logging()
     await run_startup_checks()
     yield
@@ -17,6 +22,11 @@ async def lifespan(app: FastAPI):
 
 
 def create_app() -> FastAPI:
+    """Build the FastAPI application with middleware, exception handlers, and routers registered.
+
+    Returns:
+        The configured FastAPI application instance.
+    """
     app = FastAPI(title="Knowledge System API", lifespan=lifespan)
     app.add_middleware(RequestLogMiddleware)
     register_exception_handlers(app)

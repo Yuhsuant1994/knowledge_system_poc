@@ -14,6 +14,15 @@ API_BASE = "https://api.github.com"
 
 
 def _recent_changed_paths() -> set[str]:
+    """Find HR source paths changed within the configured lookback window.
+
+    Queries the GitHub commits API for commits touching the configured
+    HR source path since ``hr_update_lookback_days`` ago, then inspects
+    each commit's file list for changed files under that path.
+
+    Returns:
+        The set of repo-relative file paths changed in that window.
+    """
     since = (
         datetime.now(timezone.utc) - timedelta(days=settings.hr_update_lookback_days)
     ).isoformat()
@@ -35,6 +44,12 @@ def _recent_changed_paths() -> set[str]:
 
 
 def main() -> None:
+    """Incrementally re-index HR docs changed within the lookback window.
+
+    Detects recently changed source paths, deletes the indexed docs that
+    no longer exist, re-fetches and re-indexes the ones that still exist,
+    and logs a summary. Exits early if no changes are found.
+    """
     # detect recent changes
     changed_paths = _recent_changed_paths()
     if not changed_paths:

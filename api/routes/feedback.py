@@ -8,5 +8,13 @@ router = APIRouter(tags=["feedback"])
 
 @router.post("/feedback", response_model=FeedbackResponse)
 def feedback(request: FeedbackRequest):
+    """Record user feedback on a chat answer and acknowledge receipt.
+
+    Args:
+        request: The feedback submission to record.
+
+    Returns:
+        A FeedbackResponse acknowledging the submission.
+    """
     record_feedback(request)
     return FeedbackResponse()

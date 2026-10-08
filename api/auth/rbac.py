@@ -22,6 +22,18 @@ class UnknownUserError(Exception):
 
 # in-memory caching, refresh in 1h
 def get_role(username: str, db: Session) -> str:
+    """Look up a user's role, using an in-memory cache to avoid repeat queries.
+
+    Args:
+        username: Username to look up.
+        db: Database session used to query the `users` table on a cache miss.
+
+    Returns:
+        The user's role.
+
+    Raises:
+        UnknownUserError: If no user with this username exists.
+    """
     cached = _role_cache.get(username)
     if cached and time.monotonic() - cached[1] < settings.role_cache_ttl_seconds:
         return cached[0]
@@ -38,4 +50,12 @@ def get_role(username: str, db: Session) -> str:
 
 
 def allowed_domains(role: str) -> set[str]:
+    """Get the set of agent domains a role may access.
+
+    Args:
+        role: Role name to look up.
+
+    Returns:
+        The domains allowed for this role, or an empty set if the role is unknown.
+    """
     return ROLE_DOMAINS.get(role, set())

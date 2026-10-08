@@ -22,6 +22,13 @@ class StartupCheckError(RuntimeError):
 
 
 def _retrying():
+    """Build a tenacity retry decorator shared by the startup checks.
+
+    Returns:
+        A `retry` decorator configured to retry up to `MAX_ATTEMPTS` times,
+        waiting `WAIT_SECONDS` between attempts, logging before/after each
+        attempt, and re-raising the final failure.
+    """
     return retry(
         stop=stop_after_attempt(MAX_ATTEMPTS),
         wait=wait_fixed(WAIT_SECONDS),
@@ -33,11 +40,21 @@ def _retrying():
 
 @_retrying()
 def _check_db(target_engine) -> None:
+    """Verify a database engine is reachable, retrying on failure.
+
+    Args:
+        target_engine: SQLAlchemy engine to ping.
+    """
     ping(target_engine)
 
 
 @_retrying()
 async def _check_ollama() -> None:
+    """Verify the Ollama server is reachable, retrying on failure.
+
+    Raises:
+        httpx.HTTPStatusError: If the server responds with an error status.
+    """
     url = f"{settings.ollama_base_url.rstrip('/')}/api/tags"
     async with httpx.AsyncClient(timeout=5.0) as client:
         response = await client.get(url)
@@ -45,6 +62,12 @@ async def _check_ollama() -> None:
 
 
 async def run_startup_checks() -> None:
+    """Verify the primary DB, sales DB, and Ollama are reachable before serving.
+
+    Raises:
+        StartupCheckError: If any dependency is still unreachable after all
+            retry attempts.
+    """
     db_checks = {
         "primary database": primary_engine,
         "sales read-only database": sales_engine,
@@ -66,6 +89,7 @@ async def run_startup_checks() -> None:
 
 
 def dispose_engines() -> None:
+    """Dispose of the primary and sales database connection pools."""
     primary_engine.dispose()
     sales_engine.dispose()
     logger.info("disposed database connection pools")

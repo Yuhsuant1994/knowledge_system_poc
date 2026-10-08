@@ -4,10 +4,21 @@ ENCODING = tiktoken.get_encoding("cl100k_base")
 
 
 def _is_table_line(line: str) -> bool:
+    """Check whether a line looks like it belongs to a table."""
     return "|" in line or "\t" in line
 
 
 def _split_segments(text: str) -> list[tuple[bool, str]]:
+    """Split text into alternating table and non-table segments.
+
+    Args:
+        text: The raw text to split, using newlines as line separators.
+
+    Returns:
+        A list of (is_table, content) tuples, where consecutive table
+        lines are grouped together and consecutive non-table lines are
+        grouped together, preserving their original order.
+    """
     segments = []
     buf, table_buf = [], []
     in_table = False
@@ -34,10 +45,28 @@ def _split_segments(text: str) -> list[tuple[bool, str]]:
 
 
 def chunk_text(text: str, chunk_size: int = 1024, overlap: int = 200) -> list[str]:
+    """Split text into token-bounded chunks with overlap, keeping tables intact.
+
+    Text is first split into table and non-table segments. Segments are
+    packed into chunks up to ``chunk_size`` tokens, tables are never split
+    across chunks, and oversized plain-text segments are hard-split on
+    token boundaries. Each resulting chunk (after the first) is prefixed
+    with a tail of overlapping tokens from the previous chunk.
+
+    Args:
+        text: The text to chunk.
+        chunk_size: Maximum number of tokens per chunk.
+        overlap: Number of trailing tokens from the previous chunk to
+            prepend to each subsequent chunk.
+
+    Returns:
+        The list of non-empty text chunks.
+    """
     chunks = []
     current, current_tokens = [], 0
 
     def flush():
+        """Append the buffered lines as a chunk and reset the buffer."""
         nonlocal current, current_tokens
         if current:
             chunks.append("\n".join(current).strip())

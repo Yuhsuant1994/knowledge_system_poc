@@ -7,6 +7,11 @@ from api.schemas.feedback import FeedbackRequest
 
 
 def record_feedback(request: FeedbackRequest) -> None:
+    """Append a feedback entry as a JSON line to today's feedback log file.
+
+    Args:
+        request: The feedback data to persist.
+    """
     log_dir = Path(settings.log_dir)
     log_dir.mkdir(parents=True, exist_ok=True)
     path = log_dir / f"feedback_{date.today().isoformat()}.log"

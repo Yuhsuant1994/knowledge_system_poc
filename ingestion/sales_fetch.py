@@ -18,6 +18,19 @@ DATE_RE = re.compile(r"'(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}(?:\.\d+)?)'")
 
 
 def _rescale_order_dates(sql: str) -> str:
+    """Rescale dates in the orders INSERT block to fall within the target range.
+
+    Finds the single "INSERT INTO orders(...) VALUES ..." statement in the
+    dump, linearly rescales every date it contains from its original
+    [min, max] span onto [TARGET_START, TARGET_END] (keeping each date's
+    original time-of-day), and substitutes the rescaled dates back in.
+
+    Args:
+        sql: The full SQL dump text.
+
+    Returns:
+        The SQL text with the orders block's dates rescaled.
+    """
     # Rescale order dates so they look current
     match = re.search(r"(INSERT INTO orders\(.*?\) VALUES\s*)(.*?)(;)", sql, re.S)
     block = match.group(2)
@@ -28,6 +41,7 @@ def _rescale_order_dates(sql: str) -> str:
     target_span = (TARGET_END - TARGET_START).total_seconds()
 
     def repl(m):
+        """Map one matched date to its rescaled equivalent, keeping the time."""
         d = datetime.strptime(m.group(1), "%Y-%m-%d")
         frac = (d - min_d).total_seconds() / span
         new_d = TARGET_START + timedelta(seconds=frac * target_span)
@@ -38,6 +52,12 @@ def _rescale_order_dates(sql: str) -> str:
 
 
 def main() -> None:
+    """Load the Northwind sample sales data into the configured database.
+
+    Downloads the SQL dump, rescales order dates into the current target
+    window, drops any existing sales tables, and runs the dump to
+    recreate and populate them.
+    """
     sql = requests.get(DUMP_URL, timeout=30).text
     sql = _rescale_order_dates(sql)
 

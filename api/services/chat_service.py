@@ -6,6 +6,20 @@ from api.auth.rbac import UnknownUserError, allowed_domains, get_role
 
 
 async def run_chat(username: str, message: str, db: Session) -> dict:
+    """Resolve the user's role and run their message through the agent graph.
+
+    Args:
+        username: Username sending the chat message.
+        message: The user's chat message.
+        db: Database session used to resolve the user's role.
+
+    Returns:
+        A dict with the answer, route, reason, sql (if any), and sources produced
+        by the agent graph.
+
+    Raises:
+        HTTPException: With status 404 if the username is not known.
+    """
     try:
         role = get_role(username, db)
     except UnknownUserError as exc:

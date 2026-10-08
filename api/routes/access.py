@@ -10,6 +10,18 @@ router = APIRouter(tags=["access"])
 
 @router.get("/access", response_model=AccessResponse)
 def access(username: str, db: Session = Depends(get_db)):
+    """Look up a user's role and the domains they are allowed to access.
+
+    Args:
+        username: Username to look up.
+        db: Database session used to resolve the user's role.
+
+    Returns:
+        An AccessResponse containing the username, role, and sorted allowed domains.
+
+    Raises:
+        HTTPException: With status 404 if the username is not known.
+    """
     try:
         role = get_role(username, db)
     except UnknownUserError as exc:
