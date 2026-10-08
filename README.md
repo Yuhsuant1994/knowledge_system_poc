@@ -135,7 +135,7 @@ My AI-SDLC for this project: Plan → Draft → Review/Challenge → Test → Do
 -----------------------------
 ## Future trouble shooting
 
-Once I get the feeback from the log, or a human feedback, there are few steps to take.
+Once I get the feeback from the log, or a human feedback (collected by api designed /feedback located in the `api/services/feedback_service.py`), there are few steps to take.
 
 1. Human / agent classify the feedback
 2. Check which component cause issue, we can identify it from the log and reasoning.
